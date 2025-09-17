@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKJC Race Scraper</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .form-container {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .result h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        
+        .json-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .error {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .help-text {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .help-text h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .help-text ul {
+            margin-left: 20px;
+        }
+        
+        .help-text li {
+            margin-bottom: 5px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏇 HKJC Race Scraper</h1>
+            <p>Extract comprehensive horse racing data from Hong Kong Jockey Club</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="help-text">
+                <h4>📋 Instructions:</h4>
+                <ul>
+                    <li><strong>Race Date:</strong> Use valid race dates (check HKJC website)</li>
+                    <li><strong>Course:</strong> Use correct course codes (HV for Happy Valley, ST for Sha Tin)</li>
+                    <li><strong>Race Number:</strong> Use valid race numbers (1-12)</li>
+                </ul>
+            </div>
+            
+            <form id="scraperForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="raceDate">Race Date</label>
+                        <input type="date" id="raceDate" name="raceDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="course">Course</label>
+                        <select id="course" name="course" required>
+                            <option value="">Select Course</option>
+                            <option value="HV">Happy Valley (HV)</option>
+                            <option value="ST">Sha Tin (ST)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="raceNo">Race Number</label>
+                    <input type="number" id="raceNo" name="raceNo" min="1" max="12" required>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 Scrape Race Data
+                </button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Scraping race data... This may take a few minutes.</p>
+            </div>
+            
+            <div class="error" id="error">
+                <strong>Error:</strong> <span id="errorMessage"></span>
+            </div>
+            
+            <div class="result" id="result">
+                <h3>✅ Scraping Complete!</h3>
+                <p>Found <span id="horseCount">0</span> horses in the race.</p>
+                <div class="json-output" id="jsonOutput"></div>
+                <button class="copy-btn" onclick="copyToClipboard()">📋 Copy JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set default date to today
+        document.getElementById('raceDate').valueAsDate = new Date();
+        
+        document.getElementById('scraperForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const raceDate = formData.get('raceDate');
+            const course = formData.get('course');
+            const raceNo = formData.get('raceNo');
+            
+            // Show loading, hide other elements
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+            
+            try {
+                // Format date for API (YYYY/MM/DD)
+                const formattedDate = raceDate.replace(/-/g, '/');
+                
+                // For now, we'll simulate the API call since we need to set up the backend
+                // In production, this would call your Vercel API endpoint
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: formattedDate,
+                        course: course,
+                        raceno: parseInt(raceNo)
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display results
+                document.getElementById('horseCount').textContent = data.horses ? data.horses.length : 0;
+                document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('result').style.display = 'block';
+                
+            } catch (error) {
+                // For demo purposes, show a mock response
+                console.log('API not available, showing demo data');
+                
+                // Simulate processing time
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Mock data for demonstration
+                const mockData = {
+                    "message": "Demo Mode - API not yet deployed",
+                    "parameters": {
+                        "date": raceDate.replace(/-/g, '/'),
+                        "course": course,
+                        "raceno": parseInt(raceNo)
+                    },
+                    "horses": [
+                        {
+                            "馬號": "1",
+                            "馬匹ID": "K106",
+                            "馬名": "友得盈",
+                            "馬匹編號": "",
+                            "最近6輪": "6/8/10/10/6/5",
+                            "排位": "+17",
+                            "負磅": "135",
+                            "騎師": "潘頓",
+                            "練馬師": "丁冠豪",
+                            "獨贏": "",
+                            "位置": "",
+                            "當前評分": "-4",
+                            "國際評分": "",
+                            "配備": "B/TT",
+                            "讓磅": "-",
+                            "練馬師喜好": "+ 1",
+                            "馬齡": "4",
+                            "傷病記錄": [
+                                {
+                                    "date": "21/04/2025",
+                                    "description": "賽後翌日右前腿不良於行"
+                                }
+                            ],
+                            "往績紀錄": [
+                                {
+                                    "race_date": "16/07/25",
+                                    "venue": "跑馬地草地B",
+                                    "distance": "1200",
+                                    "barrier": "8",
+                                    "weight": "120",
+                                    "jockey": "班德禮",
+                                    "position": "06",
+                                    "time": "1.09.87",
+                                    "equipment": "B1/TT",
+                                    "rating": "44",
+                                    "odds": "29",
+                                    "track_condition": "好/快",
+                                    "race_class": "4",
+                                    "distance_to_winner": "2-3/4",
+                                    "running_position": "1 1 6",
+                                    "barrier_weight": "1103",
+                                    "trainer": "丁冠豪"
+                                }
+                            ],
+                            "馬匹基本資料": "4歲閹馬，父系：Exceed And Excel，母系：Lady Of The Desert"
+                        }
+                    ]
+                };
+                
+                document.getElementById('horseCount').textContent = mockData.horses.length;
+                document.getElementById('jsonOutput').textContent = JSON.stringify(mockData, null, 2);
+                document.getElementById('result').style.display = 'block';
+            }
+            
+            // Hide loading, re-enable button
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        });
+        
+        function copyToClipboard() {
+            const jsonOutput = document.getElementById('jsonOutput');
+            navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

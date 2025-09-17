@@ -1,0 +1,22 @@
+{
+  "name": "hkjc-scraper-web",
+  "version": "1.0.0",
+  "description": "HKJC Race Scraper Web Interface",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step needed for static site'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "hkjc",
+    "horse-racing",
+    "scraper",
+    "hong-kong"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}
