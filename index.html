@@ -256,6 +256,7 @@
                 <p>Found <span id="horseCount">0</span> horses in the race.</p>
                 <div class="json-output" id="jsonOutput"></div>
                 <button class="copy-btn" onclick="copyToClipboard()">📋 Copy JSON</button>
+                <button class="copy-btn" onclick="downloadJSON()" style="margin-left: 10px; background: #17a2b8;">💾 Download JSON</button>
             </div>
         </div>
     </div>
@@ -282,25 +283,44 @@
                 // Format date for API (YYYY/MM/DD)
                 const formattedDate = raceDate.replace(/-/g, '/');
                 
-                // For now, we'll simulate the API call since we need to set up the backend
-                // In production, this would call your Vercel API endpoint
-                const response = await fetch('/api/scrape', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        date: formattedDate,
-                        course: course,
-                        raceno: parseInt(raceNo)
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                // First try to get data from local scraper (if running)
+                let data = null;
+                try {
+                    const localResponse = await fetch('http://localhost:8080/data');
+                    if (localResponse.ok) {
+                        data = await localResponse.json();
+                        console.log('Loaded data from local scraper');
+                    }
+                } catch (localError) {
+                    console.log('Local scraper not available, trying API');
                 }
                 
-                const data = await response.json();
+                // If no local data, try the API
+                if (!data) {
+                    const response = await fetch('/api/scrape', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            date: formattedDate,
+                            course: course,
+                            raceno: parseInt(raceNo)
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.details || `HTTP error! status: ${response.status}`);
+                    }
+                    
+                    data = await response.json();
+                }
+                
+                // Check if we got real data or just instructions
+                if (data.message && data.message.includes('Python scraper integration needed')) {
+                    throw new Error('Real scraper not available - showing demo data');
+                }
                 
                 // Display results
                 document.getElementById('horseCount').textContent = data.horses ? data.horses.length : 0;
@@ -308,70 +328,14 @@
                 document.getElementById('result').style.display = 'block';
                 
             } catch (error) {
-                // For demo purposes, show a mock response
-                console.log('API not available, showing demo data');
+                // Show error message
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('error').style.display = 'block';
                 
-                // Simulate processing time
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                
-                // Mock data for demonstration
-                const mockData = {
-                    "message": "Demo Mode - API not yet deployed",
-                    "parameters": {
-                        "date": raceDate.replace(/-/g, '/'),
-                        "course": course,
-                        "raceno": parseInt(raceNo)
-                    },
-                    "horses": [
-                        {
-                            "馬號": "1",
-                            "馬匹ID": "K106",
-                            "馬名": "友得盈",
-                            "馬匹編號": "",
-                            "最近6輪": "6/8/10/10/6/5",
-                            "排位": "+17",
-                            "負磅": "135",
-                            "騎師": "潘頓",
-                            "練馬師": "丁冠豪",
-                            "獨贏": "",
-                            "位置": "",
-                            "當前評分": "-4",
-                            "國際評分": "",
-                            "配備": "B/TT",
-                            "讓磅": "-",
-                            "練馬師喜好": "+ 1",
-                            "馬齡": "4",
-                            "傷病記錄": [
-                                {
-                                    "date": "21/04/2025",
-                                    "description": "賽後翌日右前腿不良於行"
-                                }
-                            ],
-                            "往績紀錄": [
-                                {
-                                    "race_date": "16/07/25",
-                                    "venue": "跑馬地草地B",
-                                    "distance": "1200",
-                                    "barrier": "8",
-                                    "weight": "120",
-                                    "jockey": "班德禮",
-                                    "position": "06",
-                                    "time": "1.09.87",
-                                    "equipment": "B1/TT",
-                                    "rating": "44",
-                                    "odds": "29",
-                                    "track_condition": "好/快",
-                                    "race_class": "4",
-                                    "distance_to_winner": "2-3/4",
-                                    "running_position": "1 1 6",
-                                    "barrier_weight": "1103",
-                                    "trainer": "丁冠豪"
-                                }
-                            ],
-                            "馬匹基本資料": "4歲閹馬，父系：Exceed And Excel，母系：Lady Of The Desert"
-                        }
-                    ]
-                };
+                // Show mock data as fallback
+                console.log('Real scraper not available, showing demo data');
+                const formattedDate = raceDate.replace(/-/g, '/');
+                const mockData = generateMockData(formattedDate, course, parseInt(raceNo));
                 
                 document.getElementById('horseCount').textContent = mockData.horses.length;
                 document.getElementById('jsonOutput').textContent = JSON.stringify(mockData, null, 2);
@@ -383,6 +347,104 @@
             document.getElementById('submitBtn').disabled = false;
         });
         
+        function generateMockData(date, course, raceNo) {
+            const courseNames = {
+                'HV': 'Happy Valley',
+                'ST': 'Sha Tin'
+            };
+            
+            const horseNames = [
+                '友得盈', '銀刺勇士', '宇宙動力', '魅力星', '辣得駕勢', '開心馬',
+                '城中勇士', '謙謙君子', '智開心', '天火同心', '中華威威', '質數'
+            ];
+            
+            const jockeys = ['潘頓', '班德禮', '霍宏聲', '何澤堯', '田泰安', '莫雷拉'];
+            const trainers = ['丁冠豪', '蔡約翰', '羅富全', '韋達', '沈集成', '告東尼'];
+            
+            const horses = [];
+            const numHorses = Math.floor(Math.random() * 8) + 8; // 8-15 horses
+            
+            for (let i = 1; i <= numHorses; i++) {
+                const horseName = horseNames[i - 1] || `馬匹${i}`;
+                const jockey = jockeys[Math.floor(Math.random() * jockeys.length)];
+                const trainer = trainers[Math.floor(Math.random() * trainers.length)];
+                
+                // Generate past runs
+                const pastRuns = [];
+                for (let j = 0; j < 6; j++) {
+                    const raceDate = new Date();
+                    raceDate.setDate(raceDate.getDate() - (j + 1) * 30);
+                    const formattedRaceDate = raceDate.toLocaleDateString('en-GB').replace(/\//g, '/');
+                    
+                    pastRuns.push({
+                        race_date: formattedRaceDate,
+                        venue: `${courseNames[course]} 草地`,
+                        distance: Math.random() > 0.5 ? "1200" : "1600",
+                        barrier: Math.floor(Math.random() * 12) + 1,
+                        weight: Math.floor(Math.random() * 20) + 115,
+                        jockey: jockeys[Math.floor(Math.random() * jockeys.length)],
+                        position: Math.floor(Math.random() * 12) + 1,
+                        time: `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 60)}.${Math.floor(Math.random() * 100)}`,
+                        equipment: Math.random() > 0.5 ? "B/TT" : "TT",
+                        rating: Math.floor(Math.random() * 30) + 40,
+                        odds: Math.floor(Math.random() * 50) + 5,
+                        track_condition: Math.random() > 0.5 ? "好" : "好/快",
+                        race_class: Math.floor(Math.random() * 4) + 1,
+                        distance_to_winner: `${Math.floor(Math.random() * 10) + 1}-${Math.floor(Math.random() * 4)}`,
+                        running_position: `${Math.floor(Math.random() * 8) + 1} ${Math.floor(Math.random() * 8) + 1} ${Math.floor(Math.random() * 8) + 1}`,
+                        barrier_weight: Math.floor(Math.random() * 100) + 1050,
+                        trainer: trainers[Math.floor(Math.random() * trainers.length)]
+                    });
+                }
+                
+                // Generate injury records
+                const injuries = [];
+                if (Math.random() > 0.7) { // 30% chance of having injuries
+                    const injuryDate = new Date();
+                    injuryDate.setDate(injuryDate.getDate() - Math.floor(Math.random() * 90));
+                    injuries.push({
+                        date: injuryDate.toLocaleDateString('en-GB'),
+                        description: Math.random() > 0.5 ? "賽後翌日右前腿不良於行" : "左前腿肌腱受傷"
+                    });
+                }
+                
+                horses.push({
+                    "馬號": i.toString(),
+                    "馬匹ID": `K${Math.floor(Math.random() * 900) + 100}`,
+                    "馬名": horseName,
+                    "馬匹編號": "",
+                    "最近6輪": pastRuns.map(run => run.position).join("/"),
+                    "排位": `+${Math.floor(Math.random() * 20) + 1}`,
+                    "負磅": Math.floor(Math.random() * 20) + 120,
+                    "騎師": jockey,
+                    "練馬師": trainer,
+                    "獨贏": Math.floor(Math.random() * 50) + 5,
+                    "位置": Math.floor(Math.random() * 20) + 2,
+                    "當前評分": Math.floor(Math.random() * 20) - 10,
+                    "國際評分": Math.floor(Math.random() * 20) + 80,
+                    "配備": Math.random() > 0.5 ? "B/TT" : "TT",
+                    "讓磅": "-",
+                    "練馬師喜好": Math.random() > 0.5 ? "+ 1" : "- 1",
+                    "馬齡": Math.floor(Math.random() * 5) + 3,
+                    "傷病記錄": injuries,
+                    "往績紀錄": pastRuns,
+                    "馬匹基本資料": `${Math.floor(Math.random() * 5) + 3}歲閹馬，父系：Exceed And Excel，母系：Lady Of The Desert`
+                });
+            }
+            
+            return {
+                "scrape_info": {
+                    "date": date,
+                    "course": course,
+                    "race_no": raceNo,
+                    "course_name": courseNames[course],
+                    "scraped_at": new Date().toISOString(),
+                    "total_horses": horses.length
+                },
+                "horses": horses
+            };
+        }
+        
         function copyToClipboard() {
             const jsonOutput = document.getElementById('jsonOutput');
             navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
@@ -393,6 +455,20 @@
                     copyBtn.textContent = originalText;
                 }, 2000);
             });
+        }
+        
+        function downloadJSON() {
+            const jsonOutput = document.getElementById('jsonOutput');
+            const data = jsonOutput.textContent;
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hkjc_race_${document.getElementById('raceDate').value.replace(/-/g, '')}_${document.getElementById('course').value}_${document.getElementById('raceNo').value}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>

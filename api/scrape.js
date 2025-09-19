@@ -40,67 +40,21 @@ export default async function handler(req, res) {
             });
         }
 
-        // For now, return a demo response since we need to set up the Python scraper
-        // In production, you would call your Python scraper here
-        const demoResponse = {
-            message: "Demo response - Python scraper integration needed",
+        // For now, return a message indicating Python integration is needed
+        // In production, you would integrate with your Python scraper here
+        const response = {
+            message: "Python scraper integration needed",
+            instructions: "To get real data, run the Python scraper locally:",
+            command: `python -m hkjc_scraper --date ${date} --course ${course} --raceno ${raceno} --out output.json`,
             parameters: {
                 date,
                 course,
                 raceno
             },
-            horses: [
-                {
-                    "馬號": "1",
-                    "馬匹ID": "K106",
-                    "馬名": "友得盈",
-                    "馬匹編號": "",
-                    "最近6輪": "6/8/10/10/6/5",
-                    "排位": "+17",
-                    "負磅": "135",
-                    "騎師": "潘頓",
-                    "練馬師": "丁冠豪",
-                    "獨贏": "",
-                    "位置": "",
-                    "當前評分": "-4",
-                    "國際評分": "",
-                    "配備": "B/TT",
-                    "讓磅": "-",
-                    "練馬師喜好": "+ 1",
-                    "馬齡": "4",
-                    "傷病記錄": [
-                        {
-                            "date": "21/04/2025",
-                            "description": "賽後翌日右前腿不良於行"
-                        }
-                    ],
-                    "往績紀錄": [
-                        {
-                            "race_date": "16/07/25",
-                            "venue": "跑馬地草地B",
-                            "distance": "1200",
-                            "barrier": "8",
-                            "weight": "120",
-                            "jockey": "班德禮",
-                            "position": "06",
-                            "time": "1.09.87",
-                            "equipment": "B1/TT",
-                            "rating": "44",
-                            "odds": "29",
-                            "track_condition": "好/快",
-                            "race_class": "4",
-                            "distance_to_winner": "2-3/4",
-                            "running_position": "1 1 6",
-                            "barrier_weight": "1103",
-                            "trainer": "丁冠豪"
-                        }
-                    ],
-                    "馬匹基本資料": "4歲閹馬，父系：Exceed And Excel，母系：Lady Of The Desert"
-                }
-            ]
+            note: "The website will show demo data until the Python scraper is integrated with the API."
         };
 
-        res.status(200).json(demoResponse);
+        res.status(200).json(response);
 
     } catch (error) {
         console.error('Scraping error:', error);

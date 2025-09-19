@@ -22,7 +22,14 @@
   ],
   "functions": {
     "api/scrape.js": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "runtime": "nodejs18.x"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ]
 }

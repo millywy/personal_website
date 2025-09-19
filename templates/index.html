@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKJC Race Scraper - Direct Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e1e8ed;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+            display: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result h3 {
+            color: #27ae60;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .result-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .json-output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.download {
+            background: #27ae60;
+        }
+
+        .action-btn.download:hover {
+            background: #229954;
+        }
+
+        .status-message {
+            text-align: center;
+            margin: 20px 0;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏇 HKJC Race Scraper</h1>
+            <p>Direct Python Integration - Real Data from HKJC Website</p>
+        </div>
+        
+        <div class="content">
+            <form id="scrapeForm">
+                <div class="form-group">
+                    <label for="raceDate">Race Date:</label>
+                    <input type="date" id="raceDate" name="raceDate" required>
+                    <small>Use valid race dates (check HKJC website)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="course">Course:</label>
+                    <select id="course" name="course" required>
+                        <option value="">Select Course</option>
+                        <option value="HV">Happy Valley (HV)</option>
+                        <option value="ST">Sha Tin (ST)</option>
+                    </select>
+                    <small>Use correct course codes (HV for Happy Valley, ST for Sha Tin)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="raceNo">Race Number:</label>
+                    <input type="number" id="raceNo" name="raceNo" min="1" max="12" required>
+                    <small>Use valid race numbers (1-12)</small>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="submit-btn">
+                    🚀 Scrape Real HKJC Data
+                </button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="status-message" id="statusMessage">Starting scraper...</p>
+            </div>
+            
+            <div class="error" id="error">
+                <h3>❌ Error!</h3>
+                <p id="errorMessage"></p>
+            </div>
+            
+            <div class="result" id="result">
+                <h3>✅ Scraping Complete!</h3>
+                <div class="result-info">
+                    <p>Found <span id="horseCount">0</span> horses in the race.</p>
+                    <p>Data scraped directly from HKJC website using Python.</p>
+                </div>
+                <pre><code class="json-output" id="jsonOutput"></code></pre>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="copyToClipboard()">📋 Copy JSON</button>
+                    <button class="action-btn download" onclick="downloadJSON()">💾 Download JSON</button>
+                    <button class="action-btn" onclick="downloadFromServer()">📥 Download from Server</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let statusInterval;
+
+        document.getElementById('scrapeForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const raceDate = document.getElementById('raceDate').value;
+            const course = document.getElementById('course').value;
+            const raceNo = document.getElementById('raceNo').value;
+            
+            if (!raceDate || !course || !raceNo) {
+                showError('Please fill in all fields.');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('submitBtn').disabled = true;
+            
+            try {
+                // Format date for API (YYYY/MM/DD)
+                const formattedDate = raceDate.replace(/-/g, '/');
+                
+                // Start scraping
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: formattedDate,
+                        course: course,
+                        raceno: parseInt(raceNo)
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                // Start polling for status
+                startStatusPolling();
+                
+            } catch (error) {
+                showError(error.message);
+                hideLoading();
+            }
+        });
+
+        function startStatusPolling() {
+            statusInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/status');
+                    const status = await response.json();
+                    
+                    updateProgress(status);
+                    
+                    if (!status.is_running) {
+                        clearInterval(statusInterval);
+                        
+                        if (status.error) {
+                            showError(status.error);
+                        } else if (status.result) {
+                            showResult(status.result);
+                        } else {
+                            showError('Scraping completed but no result available.');
+                        }
+                        
+                        hideLoading();
+                    }
+                } catch (error) {
+                    clearInterval(statusInterval);
+                    showError('Error checking status: ' + error.message);
+                    hideLoading();
+                }
+            }, 1000); // Poll every second
+        }
+
+        function updateProgress(status) {
+            const progressFill = document.getElementById('progressFill');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            progressFill.style.width = status.progress + '%';
+            statusMessage.textContent = status.message;
+        }
+
+        function showResult(data) {
+            document.getElementById('horseCount').textContent = data.horses ? data.horses.length : 0;
+            document.getElementById('jsonOutput').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function copyToClipboard() {
+            const jsonOutput = document.getElementById('jsonOutput');
+            navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
+                const copyBtn = document.querySelector('.action-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function downloadJSON() {
+            const jsonOutput = document.getElementById('jsonOutput');
+            const data = jsonOutput.textContent;
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hkjc_race_${document.getElementById('raceDate').value.replace(/-/g, '')}_${document.getElementById('course').value}_${document.getElementById('raceNo').value}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadFromServer() {
+            window.open('/api/download', '_blank');
+        }
+
+        // Set default date to today
+        document.getElementById('raceDate').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
